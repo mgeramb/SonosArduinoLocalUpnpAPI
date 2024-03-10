@@ -1,5 +1,8 @@
 #include "SonosApi.h"
 #include "SonosApiParameterBuilder.h"
+#ifdef ARDUINO_ARCH_ESP32   
+#include "SonosApiPlayNotification.h"
+#endif
 
 const char p_SoapEnvelope[] PROGMEM = "s:Envelope";
 const char p_SoapBody[] PROGMEM = "s:Body";
@@ -70,6 +73,16 @@ void SonosSpeaker::loop()
             subscribeAll();
         }
     }
+#ifdef ARDUINO_ARCH_ESP32   
+    if (_playNotification != nullptr)
+    {
+        if (_playNotification->checkFinished())
+        {
+            delete _playNotification;
+            _playNotification = nullptr;
+        }
+    }
+#endif
 }
 #ifdef USE_ESP_ASNC_WEB_SERVER   
 bool SonosSpeaker::canHandle(AsyncWebServerRequest* request)
@@ -1361,3 +1374,16 @@ void SonosSpeaker::playSonosPlaylist(const char* playListTitle)
         playQueue();
     }
 }
+
+#ifdef ARDUINO_ARCH_ESP32   
+void SonosSpeaker::playNotification(const char* url, uint8_t volume)
+{
+    if (_playNotification != nullptr)
+    {
+        auto temp = _playNotification;
+        _playNotification = nullptr;
+        delete temp;
+    }
+    _playNotification = new SonosApiPlayNotification(_speakerIP, url, volume, getUID());
+}
+#endif

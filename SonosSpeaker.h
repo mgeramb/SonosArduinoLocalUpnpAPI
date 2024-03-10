@@ -10,6 +10,7 @@
 #include <MicroXPath_P.h>
 
 class SonosApiParameterBuilder;
+class SonosApiPlayNotification;
 
 class SonosSpeaker 
 #ifdef USE_ESP_ASNC_WEB_SERVER
@@ -29,6 +30,7 @@ class SonosSpeaker
     unsigned long _lastGroupSnapshot = 0;
     unsigned long _subscriptionTime = 0;
     SonosApiNotificationHandler* _notificationHandler = nullptr;
+    SonosApiPlayNotification* _playNotification = nullptr;
   
     const std::string logPrefix()
     {
@@ -107,8 +109,8 @@ class SonosSpeaker
     void playInternetRadio(const char* streamingUrl, const char* radionStationName, const char* imageUrl = nullptr, const char* schema = nullptr);
     void playFromHttp(const char* url);
     void playMusicLibraryFile(const char* mediathekFilePath);
-    void playSonosPlaylist(const char* playListTitle);
     void playMusicLibraryDirectory(const char* mediathekDirectory);
+    void playSonosPlaylist(const char* playListTitle);
     void playLineIn();
     void playTVIn();
     void playQueue();
@@ -127,4 +129,7 @@ class SonosSpeaker
     boolean getStatusLight();
     const SonosApiBrowseResult browse(const char* objectId, uint32_t index, uint32_t* totalNumberOfItems);
     const SonosApiBrowseResult search(const char* objectId, const char* titleToSearch);
+#ifdef ARDUINO_ARCH_ESP32     
+    void playNotification(const char* url, uint8_t volume);
+#endif
 };

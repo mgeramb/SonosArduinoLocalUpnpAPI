@@ -3,7 +3,7 @@
 
 WebSocketsClient* SonosApiPlayNotification::_webSocket = nullptr;
 
-SonosApiPlayNotification::SonosApiPlayNotification(IPAddress& speakerIP, const char* streamUrl, byte volume, String& playerId)
+SonosApiPlayNotification::SonosApiPlayNotification(IPAddress& speakerIP, const char* streamUrl, uint8_t volume, String& playerId)
 : _speakerIP(speakerIP), _streamUrl(streamUrl), _playerId(playerId), _volume(volume)
 {
     checkFinished();
