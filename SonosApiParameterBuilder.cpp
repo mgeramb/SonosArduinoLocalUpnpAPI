@@ -7,29 +7,29 @@
 //    DATE: 2013-11-06
 // PURPOSE: Arduino library for creating XML
 
-static char cXML[6] = "\"\'<>&";
+const char SonosApiParameterBuilder::cXML[6] = "\"\'<>&";
 
-PROGMEM const char quote[] = "&quot;";
-PROGMEM const char apostrophe[] = "&apos;";
-PROGMEM const char lessthen[] = "&lt;";
-PROGMEM const char greaterthen[] = "&gt;";
-PROGMEM const char ampersand[] = "&amp;";
+const char SonosApiParameterBuilder::quote[] PROGMEM = "&quot;";
+const char SonosApiParameterBuilder::apostrophe[] PROGMEM = "&apos;";
+const char SonosApiParameterBuilder::lessthen[] PROGMEM = "&lt;";
+const char SonosApiParameterBuilder::greaterthen[] PROGMEM = "&gt;";
+const char SonosApiParameterBuilder::ampersand[] PROGMEM = "&amp;";
 
-PROGMEM const char* const expandedXML[] =
+const char* const SonosApiParameterBuilder::expandedXML[] PROGMEM =
     {
         quote, apostrophe, lessthen, greaterthen, ampersand};
 
-PROGMEM const char quote2[] = "&amp;quot;";
-PROGMEM const char apostrophe2[] = "&amp;apos;";
-PROGMEM const char lessthen2[] = "&amp;lt;";
-PROGMEM const char greaterthen2[] = "&amp;gt;";
-PROGMEM const char ampersand2[] = "&amp;amp;";
+const char SonosApiParameterBuilder::quote2[] PROGMEM = "&amp;quot;";
+const char SonosApiParameterBuilder::apostrophe2[] PROGMEM = "&amp;apos;";
+const char SonosApiParameterBuilder::lessthen2[] PROGMEM = "&amp;lt;";
+const char SonosApiParameterBuilder::greaterthen2[] PROGMEM = "&amp;gt;";
+const char SonosApiParameterBuilder::ampersand2[] PROGMEM = "&amp;amp;";
 
-PROGMEM const char* const doubleExpandedXML[] =
+const char* const SonosApiParameterBuilder::doubleExpandedXML[] PROGMEM =
     {
         quote2, apostrophe2, lessthen2, greaterthen2, ampersand2};
 
-static char cURL[] = " !\"#$%&'()*+,-./:;<=>?@";
+const char SonosApiParameterBuilder::cURL[] PROGMEM = " !\"#$%&'()*+,-./:;<=>?@";
 
 size_t SonosApiParameterBuilder::writeEncoded(const char* str, byte mode)
 {
@@ -87,8 +87,6 @@ size_t SonosApiParameterBuilder::writeEncoded(const char* str, byte mode)
     }
     return length;
 }
-
-
 
 SonosApiParameterBuilder::SonosApiParameterBuilder(Stream* stream)
     : _stream(stream)
@@ -154,6 +152,7 @@ void SonosApiParameterBuilder::EndParameter()
     }
     currentParameterName = nullptr;
 }
+
 size_t SonosApiParameterBuilder::length()
 {
     return _length;

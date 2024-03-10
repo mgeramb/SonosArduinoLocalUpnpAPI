@@ -19,6 +19,44 @@ class SonosSpeaker
 {
     friend class SonosApi;
   private:
+    static const char p_SoapEnvelope[];
+    static const char p_SoapBody[];
+    static const char p_PropertySet[];
+    static const char p_Property[];
+    static const char p_LastChange[];
+    static const char masterVolume[];
+    static const char masterMute[];
+    static const char masterLoudness[];
+    static const char treble[];
+    static const char bass[];
+    static const char transportState[];
+    static const char playMode[];
+    static const char trackURI[];
+    static const char trackMetaData[];
+    static const char trackDuration[];
+    static const char trackNumber[];
+
+    static const char renderingControlUrl[];
+    static const char renderingControlSoapAction[];
+
+    static const char devicePropertiesUrl[];
+    static const char devicePropertiesSoapAction[];
+
+    static const char renderingGroupRenderingControlUrl[];
+    static const char renderingGroupRenderingControlSoapAction[];
+
+    static const char renderingAVTransportUrl[];
+    static const char renderingAVTransportSoapAction[];
+
+    static const char contentDirectoryUrl[];
+    static const char contentDirectorySoapAction[];
+
+    static const char radioMetadataBeginTitle[];
+    static const char radioMetadataEndTitleBeginImageUrl[];
+    static const char radioMetadataEndImageUrl[];
+
+
+
     SonosApi& _sonosApi;
     const static uint32_t _subscriptionTimeInSeconds = 600;
     String _uuid;

@@ -4,9 +4,11 @@
 #include "SonosApiPlayNotification.h"
 #endif
 
-const char p_SoapEnvelope[] PROGMEM = "s:Envelope";
-const char p_SoapBody[] PROGMEM = "s:Body";
-
+const char SonosSpeaker::p_SoapEnvelope[] PROGMEM = "s:Envelope";
+const char SonosSpeaker::p_SoapBody[] PROGMEM = "s:Body";
+const char SonosSpeaker::p_PropertySet[] PROGMEM = "e:propertyset";
+const char SonosSpeaker::p_Property[] PROGMEM = "e:property";
+const char SonosSpeaker::p_LastChange[] PROGMEM = "LastChange";
 
 SonosSpeaker::~SonosSpeaker()
 {
@@ -53,8 +55,11 @@ void SonosSpeaker::setCallback(SonosApiNotificationHandler* notificationHandler)
 
 void SonosSpeaker::subscribeAll()
 {
-    Serial.print("Subscribe ");
-    Serial.println(millis());
+    if (_sonosApi._debugSerial != nullptr)
+    {
+        _sonosApi._debugSerial->print("Subscribe ");
+        _sonosApi._debugSerial->println(millis());
+    }
     _subscriptionTime = millis();
     if (_subscriptionTime == 0)
         _subscriptionTime = 1;
@@ -66,7 +71,7 @@ void SonosSpeaker::subscribeAll()
 
 void SonosSpeaker::loop()
 {
-    if (_subscriptionTime > 0)
+    if (_subscriptionTime > 0 && _notificationHandler != nullptr)
     {
         if (millis() - _subscriptionTime > _subscriptionTimeInSeconds * 1000)
         {
@@ -97,9 +102,7 @@ bool SonosSpeaker::canHandle(AsyncWebServerRequest* request)
     return false;
 }
 #endif
-const char p_PropertySet[] PROGMEM = "e:propertyset";
-const char p_Property[] PROGMEM = "e:property";
-const char p_LastChange[] PROGMEM = "LastChange";
+
 
 void charBuffer_xPath(MicroXPath_P& xPath, const char* readBuffer, size_t readBufferLength, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize)
 {
@@ -196,26 +199,28 @@ const char* SonosSpeaker::getPlayModeString(SonosApiPlayMode playMode)
     return p_PlayModeNormal;
 }
 
-const char masterVolume[] PROGMEM = "&lt;Volume channel=&quot;Master&quot; val=&quot;";
-const char masterMute[] PROGMEM = "&lt;Mute channel=&quot;Master&quot; val=&quot;";
-const char masterLoudness[] PROGMEM = "&lt;Loudness channel=&quot;Master&quot; val=&quot;";
-const char treble[] PROGMEM = "&lt;Treble val=&quot;";
-const char bass[] PROGMEM = "&lt;Bass val=&quot;";
-const char transportState[] PROGMEM = "&lt;TransportState val=&quot;";
-const char playMode[] PROGMEM = "&lt;CurrentPlayMode val=&quot;";
-const char trackURI[] PROGMEM = "&lt;CurrentTrackURI val=&quot;";
-const char trackMetaData[] PROGMEM = "&lt;CurrentTrackMetaData val=&quot;";
-const char trackDuration[] PROGMEM = "&lt;CurrentTrackDuration val=&quot;";
-const char trackNumber[] PROGMEM = "&lt;CurrentTrack val=&quot;";
-
+const char SonosSpeaker::masterVolume[] PROGMEM = "&lt;Volume channel=&quot;Master&quot; val=&quot;";
+const char SonosSpeaker::masterMute[] PROGMEM = "&lt;Mute channel=&quot;Master&quot; val=&quot;";
+const char SonosSpeaker::masterLoudness[] PROGMEM = "&lt;Loudness channel=&quot;Master&quot; val=&quot;";
+const char SonosSpeaker::treble[] PROGMEM = "&lt;Treble val=&quot;";
+const char SonosSpeaker::bass[] PROGMEM = "&lt;Bass val=&quot;";
+const char SonosSpeaker::transportState[] PROGMEM = "&lt;TransportState val=&quot;";
+const char SonosSpeaker::playMode[] PROGMEM = "&lt;CurrentPlayMode val=&quot;";
+const char SonosSpeaker::trackURI[] PROGMEM = "&lt;CurrentTrackURI val=&quot;";
+const char SonosSpeaker::trackMetaData[] PROGMEM = "&lt;CurrentTrackMetaData val=&quot;";
+const char SonosSpeaker::trackDuration[] PROGMEM = "&lt;CurrentTrackDuration val=&quot;";
+const char SonosSpeaker::trackNumber[] PROGMEM = "&lt;CurrentTrack val=&quot;";
 // const char numberOfTracks[] PROGMEM = "&lt;NumberOfTracks val=&quot;";
-// const char currentTrack[] PROGMEM = "&lt;CurrentTrack val=&quot;";
+
 #ifdef USE_ESP_ASNC_WEB_SERVER   
 void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total)
 {
-    Serial.print("Notification received ");
-    Serial.println(millis());
-    // Serial.println(String(data, len));
+    if (_sonosApi._debugSerial != nullptr)
+    {
+        _sonosApi._debugSerial->print("Notification received ");
+        _sonosApi._debugSerial->println(millis());
+        // _sonosApi._debugSerial->println(String(data, len));
+    }
     if (_notificationHandler != nullptr)
     {
         bool groupCoordinatorChanged = false;
@@ -234,79 +239,112 @@ void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, siz
             if (readFromEncodeXML(buffer, masterVolume, valueBuffer, valueBufferSize))
             {
                 auto currentVolume = constrain(atoi(valueBuffer), 0, 100);
-                Serial.print("Volume: ");
-                Serial.println(currentVolume);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Volume: ");
+                    _sonosApi._debugSerial->println(currentVolume);
+                }
                 _notificationHandler->notificationVolumeChanged(this, currentVolume);
             }
             if (readFromEncodeXML(buffer, bass, valueBuffer, valueBufferSize))
             {
                 auto currentBass = constrain(atoi(valueBuffer), -10, 10);
-                Serial.print("Bass: ");
-                Serial.println(currentBass);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Bass: ");
+                    _sonosApi._debugSerial->println(currentBass);
+                }
                 _notificationHandler->notificationBassChanged(this, currentBass);
             }
             if (readFromEncodeXML(buffer, treble, valueBuffer, valueBufferSize))
             {
                 auto currentTreble = constrain(atoi(valueBuffer), -10, 10);
-                Serial.print("Treble: ");
-                Serial.println(currentTreble);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Treble: ");
+                    _sonosApi._debugSerial->println(currentTreble);
+                }
                 _notificationHandler->notificationTrebleChanged(this, currentTreble);
             }
             if (readFromEncodeXML(buffer, masterMute, valueBuffer, valueBufferSize))
             {
                 auto currentMute = valueBuffer[0] == '1';
-                Serial.print("Mute: ");
-                Serial.println(currentMute);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Mute: ");
+                    _sonosApi._debugSerial->println(currentMute);
+                }
                 _notificationHandler->notificationMuteChanged(this, currentMute);
             }
             if (readFromEncodeXML(buffer, masterLoudness, valueBuffer, valueBufferSize))
             {
                 auto currentMute = valueBuffer[0] == '1';
-                Serial.print("Loudness: ");
-                Serial.println(currentMute);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Loudness: ");
+                    _sonosApi._debugSerial->println(currentMute);
+                }
                 _notificationHandler->notificationLoudnessChanged(this, currentMute);
             }
             if (readFromEncodeXML(buffer, transportState, valueBuffer, valueBufferSize))
             {
                 auto playState = getPlayStateFromString(valueBuffer);
-                Serial.print("Play State: ");
-                Serial.println(playState);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Play State: ");
+                    _sonosApi._debugSerial->println(playState);
+                }
                 _notificationHandler->notificationPlayStateChanged(this, playState);
             }
             if (readFromEncodeXML(buffer, playMode, valueBuffer, valueBufferSize))
             {
                 auto playMode = getPlayModeFromString(valueBuffer);
-                Serial.print("Play Mode: ");
-                Serial.println(playMode);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Play Mode: ");
+                    _sonosApi._debugSerial->println(playMode);
+                }
                 _notificationHandler->notificationPlayModeChanged(this, playMode);
             }
             if (readFromEncodeXML(buffer, trackURI, valueBuffer, valueBufferSize))
             {
-                Serial.print("Track URI: ");
-                Serial.println(valueBuffer);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Track URI: ");
+                    _sonosApi._debugSerial->println(valueBuffer);
+                }
                 if (sonosTrackInfo == nullptr)
                     sonosTrackInfo = new SonosTrackInfo();
                 sonosTrackInfo->uri = valueBuffer;
             }
             if (readFromEncodeXML(buffer, trackMetaData, valueBuffer, valueBufferSize))
             {
-                Serial.print("Track Metadata: ");
-                Serial.println(valueBuffer);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Track Metadata: ");
+                    _sonosApi._debugSerial->println(valueBuffer);
+                }
                 if (sonosTrackInfo == nullptr)
                     sonosTrackInfo = new SonosTrackInfo();
                 sonosTrackInfo->metadata = valueBuffer;
             }
             if (readFromEncodeXML(buffer, trackDuration, valueBuffer, valueBufferSize))
             {
-                Serial.print("Track Duration: ");
-                Serial.println(valueBuffer);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Track Duration: ");
+                    _sonosApi._debugSerial->println(valueBuffer);
+                }
                 if (sonosTrackInfo == nullptr)
                     sonosTrackInfo = new SonosTrackInfo();
             }
             if (readFromEncodeXML(buffer, trackNumber, valueBuffer, valueBufferSize))
             {
-                Serial.print("Track Number: ");
-                Serial.println(valueBuffer);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Track Number: ");
+                    _sonosApi._debugSerial->println(valueBuffer);
+                }
                 if (sonosTrackInfo == nullptr)
                     sonosTrackInfo = new SonosTrackInfo();
                 sonosTrackInfo->trackNumber = atoi(valueBuffer);
@@ -348,8 +386,11 @@ void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, siz
         if (strlen(buffer) > 0)
         {
             auto currentGroupVolume = constrain(atoi(buffer), 0, 100);
-            Serial.print("Group Volume: ");
-            Serial.println(currentGroupVolume);
+            if (_sonosApi._debugSerial != nullptr)
+            {
+                _sonosApi._debugSerial->print("Group Volume: ");
+                _sonosApi._debugSerial->println(currentGroupVolume);
+            }
             _notificationHandler->notificationGroupVolumeChanged(this, currentGroupVolume);
         }
         xPath.reset();
@@ -359,15 +400,21 @@ void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, siz
         if (strlen(buffer) > 0)
         {
             auto currentGroupMute = buffer[0] == '1';
-            Serial.print("Group Mute: ");
-            Serial.println(currentGroupMute);
+            if (_sonosApi._debugSerial != nullptr)
+            {
+                _sonosApi._debugSerial->print("Group Mute: ");
+                _sonosApi._debugSerial->println(currentGroupMute);
+            }
             _notificationHandler->notificationGroupMuteChanged(this, currentGroupMute);
         }
         delete buffer;
         if (groupCoordinatorChanged)
             _notificationHandler->notificationGroupCoordinatorChanged(this);
     }
-    // Serial.println(String(data, len));
+    // if (_sonosApi._debugSerial != nullptr)
+    // {
+    //     _sonosApi._debugSerial->println(String(data, len));
+    // }
     request->send(200);
 }
 #endif
@@ -423,12 +470,16 @@ int SonosSpeaker::postAction(const char* soapUrl, const char* soapAction, const 
     WiFiClient wifiClient;
     if (wifiClient.connect(_speakerIP, 1400) != true)
     {
-        Serial.printf("connect to %s:1400 failed\r\n", _speakerIP.toString().c_str());
+        if (_sonosApi._debugSerial != nullptr)
+           _sonosApi._debugSerial->printf("connect to %s:1400 failed\r\n", _speakerIP.toString().c_str());
         return -1;
     }
 
-    writeSoapHttpCall(Serial, soapUrl, soapAction, action, parameterFunction, addInstanceNode);
-    Serial.println();
+    if (_sonosApi._debugSerial != nullptr)
+    {
+        writeSoapHttpCall(*_sonosApi._debugSerial, soapUrl, soapAction, action, parameterFunction, addInstanceNode);
+        _sonosApi._debugSerial->println();
+    }
     writeSoapHttpCall(wifiClient, soapUrl, soapAction, action, parameterFunction, addInstanceNode);
 
     auto start = millis();
@@ -448,17 +499,18 @@ int SonosSpeaker::postAction(const char* soapUrl, const char* soapAction, const 
         {
             if (c == -1)
                 break;
-            Serial.print((char)c);
+            if (_sonosApi._debugSerial != nullptr)
+                _sonosApi._debugSerial->print((char)c);
         }
     }
-
-    Serial.println();
+    if (_sonosApi._debugSerial != nullptr)
+        _sonosApi._debugSerial->println();
     wifiClient.stop();
     return 0;
 }
 
-const char* renderingControlUrl PROGMEM = "/MediaRenderer/RenderingControl/Control";
-const char* renderingControlSoapAction PROGMEM = "urn:schemas-upnp-org:service:RenderingControl:1";
+const char SonosSpeaker::renderingControlUrl[] PROGMEM = "/MediaRenderer/RenderingControl/Control";
+const char SonosSpeaker::renderingControlSoapAction[] PROGMEM = "urn:schemas-upnp-org:service:RenderingControl:1";
 
 void SonosSpeaker::setVolume(uint8_t volume)
 {
@@ -515,8 +567,8 @@ boolean SonosSpeaker::getMute()
     return currentMute;
 }
 
-const char* devicePropertiesUrl PROGMEM = "/DeviceProperties/Control";
-const char* devicePropertiesSoapAction PROGMEM = "urn:schemas-upnp-org:service:DeviceProperties:1";
+const char SonosSpeaker::devicePropertiesUrl[] PROGMEM = "/DeviceProperties/Control";
+const char SonosSpeaker::devicePropertiesSoapAction[] PROGMEM = "urn:schemas-upnp-org:service:DeviceProperties:1";
 
 void SonosSpeaker::setStatusLight(boolean on)
 {
@@ -605,8 +657,8 @@ boolean SonosSpeaker::getLoudness()
     return currentLoudness;
 }
 
-const char* renderingGroupRenderingControlUrl PROGMEM = "/MediaRenderer/GroupRenderingControl/Control";
-const char* renderingGroupRenderingControlSoapAction PROGMEM = "urn:schemas-upnp-org:service:GroupRenderingControl:1";
+const char SonosSpeaker::renderingGroupRenderingControlUrl[] PROGMEM = "/MediaRenderer/GroupRenderingControl/Control";
+const char SonosSpeaker::renderingGroupRenderingControlSoapAction[] PROGMEM = "urn:schemas-upnp-org:service:GroupRenderingControl:1";
 
 void SonosSpeaker::setGroupVolume(uint8_t volume)
 {
@@ -667,8 +719,8 @@ boolean SonosSpeaker::getGroupMute()
     return currentGroupMute;
 }
 
-const char* renderingAVTransportUrl PROGMEM = "/MediaRenderer/AVTransport/Control";
-const char* renderingAVTransportSoapAction PROGMEM = "urn:schemas-upnp-org:service:AVTransport:1";
+const char SonosSpeaker::renderingAVTransportUrl[] PROGMEM = "/MediaRenderer/AVTransport/Control";
+const char SonosSpeaker::renderingAVTransportSoapAction[] PROGMEM = "urn:schemas-upnp-org:service:AVTransport:1";
 
 void SonosSpeaker::setAVTransportURI(const char* schema, const char* currentURI, const char* currentURIMetaData)
 {
@@ -807,11 +859,13 @@ int SonosSpeaker::subscribeEvents(const char* soapUrl)
     WiFiClient wifiClient;
     if (wifiClient.connect(_speakerIP, 1400) != true)
     {
-        Serial.printf("connect to %s:1400 failed\r\n", _speakerIP.toString().c_str());
+        if (_sonosApi._debugSerial != nullptr)
+            _sonosApi._debugSerial->printf("connect to %s:1400 failed\r\n", _speakerIP.toString().c_str());
         return -1;
     }
 
-    writeSubscribeHttpCall(Serial, soapUrl);
+    if (_sonosApi._debugSerial != nullptr)
+        writeSubscribeHttpCall(*_sonosApi._debugSerial, soapUrl);
     writeSubscribeHttpCall(wifiClient, soapUrl);
 
     auto start = millis();
@@ -827,9 +881,11 @@ int SonosSpeaker::subscribeEvents(const char* soapUrl)
     {
         if (c == -1)
             break;
-        Serial.print((char)c);
+        if (_sonosApi._debugSerial != nullptr)         
+            _sonosApi._debugSerial->print((char)c);
     }
-    Serial.println();
+    if (_sonosApi._debugSerial != nullptr)
+        _sonosApi._debugSerial->println();
     wifiClient.stop();
     return 0;
 }
@@ -1121,10 +1177,9 @@ void SonosSpeaker::removeAllTracksFromQueue()
     postAction(renderingAVTransportUrl, renderingAVTransportSoapAction, "RemoveAllTracksFromQueue");
 }
 
-const char radioMetadataBeginTitle[] PROGMEM = "<DIDL-Lite xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:upnp='urn:schemas-upnp-org:metadata-1-0/upnp/' xmlns:r='urn:schemas-rinconnetworks-com:metadata-1-0/' xmlns='urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/'><item id='R:0/0/46' parentID='R:0/0' restricted='true'><dc:title>";
-const char radioMetadataEndTitleBeginImageUrl[] PROGMEM = "</dc:title><upnp:albumArtURI>";
-const char radioMetadataEndImageUrl[] PROGMEM = "</upnp:albumArtURI><upnp:class>object.item.audioItem.audioBroadcast</upnp:class><desc id='cdudn' nameSpace='urn:schemas-rinconnetworks-com:metadata-1-0/'>SA_RINCON65031_</desc></item></DIDL-Lite>";
-
+const char SonosSpeaker::radioMetadataBeginTitle[] PROGMEM = "<DIDL-Lite xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:upnp='urn:schemas-upnp-org:metadata-1-0/upnp/' xmlns:r='urn:schemas-rinconnetworks-com:metadata-1-0/' xmlns='urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/'><item id='R:0/0/46' parentID='R:0/0' restricted='true'><dc:title>";
+const char SonosSpeaker::radioMetadataEndTitleBeginImageUrl[] PROGMEM = "</dc:title><upnp:albumArtURI>";
+const char SonosSpeaker::radioMetadataEndImageUrl[] PROGMEM = "</upnp:albumArtURI><upnp:class>object.item.audioItem.audioBroadcast</upnp:class><desc id='cdudn' nameSpace='urn:schemas-rinconnetworks-com:metadata-1-0/'>SA_RINCON65031_</desc></item></DIDL-Lite>";
 
 void SonosSpeaker::playInternetRadio(const char* streamingUrl, const char* radioStationName, const char* imageUrl, const char* schema)
 {
@@ -1151,8 +1206,6 @@ void SonosSpeaker::playFromHttp(const char* url)
     setAVTransportURI(nullptr, url);
     play();
 }
-
-
 
 void SonosSpeaker::playMusicLibraryFile(const char* mediathekFilePath)
 {
@@ -1188,8 +1241,6 @@ void SonosSpeaker::playMusicLibraryDirectory(const char* mediathekDirectory)
     playQueue();
 }
 
-
-
 void SonosSpeaker::playLineIn()
 {
     setAVTransportURI(SonosApi::SchemaLineIn, getUID().c_str());
@@ -1211,8 +1262,8 @@ void SonosSpeaker::playQueue()
     play();
 }
 
-const char* contentDirectoryUrl PROGMEM = "/MediaServer/ContentDirectory/Control";
-const char* contentDirectorySoapAction PROGMEM = "urn:schemas-upnp-org:service:ContentDirectory:1";
+const char SonosSpeaker::contentDirectoryUrl[] PROGMEM = "/MediaServer/ContentDirectory/Control";
+const char SonosSpeaker::contentDirectorySoapAction[] PROGMEM = "urn:schemas-upnp-org:service:ContentDirectory:1";
 
 const char* SonosSpeaker::xPathOnString(MicroXPath_P& xPath, const char* bufferToSearch, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize, bool xmlDecode)
 {
@@ -1324,9 +1375,6 @@ const SonosApiBrowseResult SonosSpeaker::search(const char* objectId, const char
         {
             auto searchIndex = (lowerLimit + upperLimit) / 2;
             result = browse(objectId, searchIndex, &totalNumberOfItems);
-            Serial.println("***");
-             Serial.println(searchIndex);
-            Serial.println(totalNumberOfItems);
             cmp = strcasecmp(result.title.c_str(), titleToSearch);
             if (cmp == 0)
             {

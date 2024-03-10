@@ -15,6 +15,11 @@ void SonosApi::setWebServer(AsyncWebServer* webServer, uint16_t port)
     _webServer = webServer;
 }
 #endif
+
+void SonosApi::setDebugSerial(Stream* debugSerial)
+{
+    _debugSerial = debugSerial;
+}
 void SonosApi::loop()
 {
     bool connected = WiFi.status() == WL_CONNECTED;

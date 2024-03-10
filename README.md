@@ -93,8 +93,8 @@ void setup()
     (...)
 
     // declare all sonsos (For stereo speaker pairs, add only one)
-    speakerLivingroom = sonosApi.AddSpeaker("192.168.0.101");
-    speakerKitchen = sonosApi.AddSpeaker("192.168.0.102");
+    speakerLivingroom = sonosApi.addSpeaker("192.168.0.101");
+    speakerKitchen = sonosApi.addSpeaker("192.168.0.102");
 
     // Start playing radion in living room as standalone group controller
     speakerLivingroom->playInternetRadio(
@@ -102,9 +102,11 @@ void setup()
         "Radio Wien", // station name
         "https://cdn-profiles.tunein.com/s44255/images/logod.jpg"); // station logo image url
     
-    speakerKitchen->joinToGroupCoordinator(speakerLivingroom); // joing group living room
+    // joing group living room
+    speakerKitchen->joinToGroupCoordinator(speakerLivingroom); 
 
-    speakerLivingroom->setGroupVolume(10); // change the volume of the group
+    // change the volume of the group
+    speakerLivingroom->setGroupVolume(10); 
 }
 
 void loop()

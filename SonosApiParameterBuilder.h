@@ -3,6 +3,26 @@
 
 class SonosApiParameterBuilder
 {
+  private:
+    static const char cXML[];
+
+    static const char quote[];
+    static const char apostrophe[];
+    static const char lessthen[];
+    static const char greaterthen[];
+    static const char ampersand[];
+
+    static const char* const expandedXML[];
+
+    static const char quote2[];
+    static const char apostrophe2[];
+    static const char lessthen2[];
+    static const char greaterthen2[];
+    static const char ampersand2[];
+
+    static const char* const doubleExpandedXML[];
+
+    static const char cURL[];
   public:
     static const int ENCODE_NO = 0;
     static const int ENCODE_XML = 1;
