@@ -1,10 +1,6 @@
 #pragma once
 #include "SonosApiHelpers.h"
-#ifdef USE_ESP_ASNC_WEB_SERVER
-#include <ESPAsyncWebServer.h>
-#else 
-#include "WebServer.h"
-#endif
+
 
 #include <MicroXPath.h>
 #include <MicroXPath_P.h>

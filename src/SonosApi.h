@@ -7,8 +7,12 @@
 #endif
 
 #include "WiFiClient.h"
+#include "WiFiClientSecure.h"
 #include "WiFi.h"
-#include "WebSocketsClient.h"
+#ifdef USE_ESP_ASNC_WEB_SERVER
+#include <ESPAsyncWebServer.h>
+#endif
+#include "WebSockets.h"
 #include <unordered_set>
 #include "SonosApiHelpers.h"
 #include "SonosSpeaker.h"
