@@ -1,6 +1,10 @@
 # ArduinoSonosLocalUpnpAPI
 Sonos-ESP inspired successor library for controlling Sonos speakers over the unofficial local UPnP API.
 
+## Warning
+This library uses an unofficial API. 
+The API can be shutdown by Sonos without any announcment, which would cause the library stop working.
+
 ## Features
 
 ### Play sources
@@ -75,6 +79,42 @@ This library used the following libs:
 - ArduinoHttpClient (for sonos api calls)
 - MicroXPath (for XML parsing)
 
+# Using the library
+
+``` C++
+
+SonosApi sonosApi;
+SonosSpeaker speakerLivingroom;
+SonosSpeaker speakerKitchen;
+
+void setup()
+{
+    // Setup WIFI
+    (...)
+
+    // declare all sonsos (For stereo speaker pairs, add only one)
+    speakerLivingroom = sonosApi.AddSpeaker("192.168.0.101");
+    speakerKitchen = sonosApi.AddSpeaker("192.168.0.102");
+
+    // Start playing radion in living room as standalone group controller
+    speakerLivingroom->playInternetRadio(
+        "https://orf-live.ors-shoutcast.at/wie-q2a.m3u", // station audio stream url
+        "Radio Wien", // station name
+        "https://cdn-profiles.tunein.com/s44255/images/logod.jpg"); // station logo image url
+    
+    speakerKitchen->joinToGroupCoordinator(speakerLivingroom); // joing group living room
+
+    speakerLivingroom->setGroupVolume(10); // change the volume of the group
+}
+
+void loop()
+{
+    sonosApi.loop();
+}
+
+```
+
+
 # Licence
 
 This library is [MIT license](LICENSE).
@@ -84,7 +124,11 @@ This library is [MIT license](LICENSE).
 This library is base on the following libraries and documentations:
 
 [tmittet/sonos](https://github.com/tmittet/sonos)
+
 [javos65/Sonos-ESP32](https://github.com/javos65/Sonos-ESP32)
+
 [Unofficial Sonos Docs](https://sonos.svrooij.io)
+
 [KilianB/Java-Sonos-Controller](https://github.com/KilianB/Java-Sonos-Controller)
+
 [tmittet/microxpath](https://github.com/tmittet/microxpath)
