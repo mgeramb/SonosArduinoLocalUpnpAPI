@@ -1,6 +1,7 @@
 #pragma once
 #include "WiFiClient.h"
 #include "WiFi.h"
+#include "WebSocketsClient.h"
 #include <unordered_set>
 #include "SonosApiHelpers.h"
 #include "SonosSpeaker.h"
