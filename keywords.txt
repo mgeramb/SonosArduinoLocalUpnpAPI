@@ -1,0 +1,11 @@
+# Syntax Coloring Map For ExampleLibrary
+
+# Datatypes (KEYWORD1)
+SonosApi      KEYWORD1
+SonosSpeaker  KEYWORD1
+
+# Methods and Functions (KEYWORD2)
+
+# Instances (KEYWORD2)
+
+# Constants (LITERAL1)

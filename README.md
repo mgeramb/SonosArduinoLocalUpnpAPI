@@ -1,4 +1,4 @@
-# ArduinoSonosLocalUpnpAPI
+# SonosArduinoLocalUpnpAPI
 Sonos-ESP inspired successor library for controlling Sonos speakers over the unofficial local UPnP API.
 
 ## Warning
