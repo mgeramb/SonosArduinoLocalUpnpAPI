@@ -25,7 +25,7 @@ IPAddress& SonosSpeaker::getSpeakerIP()
 SonosSpeaker::SonosSpeaker(
     SonosApi& sonosApi,
     IPAddress speakerIP
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     , AsyncWebServer* webServer
 #endif
     )
@@ -46,7 +46,7 @@ void SonosSpeaker::xPathOnWifiClient(MicroXPath_P& xPath, WiFiClient& wifiClient
         ;
 }
 
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
 void SonosSpeaker::setCallback(SonosApiNotificationHandler* notificationHandler)
 {
     _notificationHandler = notificationHandler;
@@ -89,7 +89,7 @@ void SonosSpeaker::loop()
     }
 #endif
 }
-#ifdef USE_ESP_ASNC_WEB_SERVER   
+#ifndef DISABLE_CALLBACK   
 bool SonosSpeaker::canHandle(AsyncWebServerRequest* request)
 {
     if (request->url().startsWith("/notification/"))
@@ -212,7 +212,7 @@ const char SonosSpeaker::trackDuration[] PROGMEM = "&lt;CurrentTrackDuration val
 const char SonosSpeaker::trackNumber[] PROGMEM = "&lt;CurrentTrack val=&quot;";
 // const char numberOfTracks[] PROGMEM = "&lt;NumberOfTracks val=&quot;";
 
-#ifdef USE_ESP_ASNC_WEB_SERVER   
+#ifndef DISABLE_CALLBACK   
 void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total)
 {
     if (_sonosApi._debugSerial != nullptr)

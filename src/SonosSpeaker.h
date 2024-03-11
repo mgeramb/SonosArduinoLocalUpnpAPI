@@ -9,7 +9,7 @@ class SonosApiParameterBuilder;
 class SonosApiPlayNotification;
 
 class SonosSpeaker 
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
 : private AsyncWebHandler
 #endif
 {
@@ -87,13 +87,13 @@ class SonosSpeaker
     int subscribeEvents(const char* soapUrl);
     void subscribeAll();
 
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     // AsyncWebHandler
     bool canHandle(AsyncWebServerRequest *request) override final;
     void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) override final;
 #endif   
   private:
-#ifdef USE_ESP_ASNC_WEB_SERVER  
+#ifndef DISABLE_CALLBACK  
     SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP, AsyncWebServer* webServer);
 #else
     SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP);
@@ -106,7 +106,7 @@ class SonosSpeaker
     static String getUID(IPAddress ipAddress);
 
     IPAddress& getSpeakerIP();
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     void setCallback(SonosApiNotificationHandler* notificationHandler);
 #endif
     void setVolume(uint8_t volume);

@@ -26,12 +26,12 @@ public:
 private:
     std::vector<SonosSpeaker*> _allSonosSpeakers;
     Stream* _debugSerial = nullptr;
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     AsyncWebServer* _webServer = nullptr;
 #endif
     uint16_t _port = 28124;
 public:
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     // Must be called before addSpeaker
     void setWebServer(AsyncWebServer* webServer, uint16_t port);
 #endif

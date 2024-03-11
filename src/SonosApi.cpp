@@ -8,7 +8,7 @@ const char SonosApi::SchemaTVIn[] PROGMEM = "x-sonos-htastream:";
 const char SonosApi::UrlPostfixTVIn[] PROGMEM = ":spdif";
 const char SonosApi::SchemaMaster[] PROGMEM = "x-rincon:";
 
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
 void SonosApi::setWebServer(AsyncWebServer* webServer, uint16_t port)
 {
     _port = port;
@@ -34,7 +34,7 @@ void SonosApi::loop()
 
 SonosSpeaker* SonosApi::addSpeaker(IPAddress ipAddress)
 {
-#ifdef USE_ESP_ASNC_WEB_SERVER
+#ifndef DISABLE_CALLBACK
     if (_webServer == nullptr)
     {
         _webServer = new AsyncWebServer(_port);
