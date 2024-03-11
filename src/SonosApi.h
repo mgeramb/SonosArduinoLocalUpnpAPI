@@ -1,16 +1,11 @@
 #pragma once
 
-#if ARDUINO_ARCH_ESP32
-#ifndef USE_ESP_ASNC_WEB_SERVER
-#define USE_ESP_ASNC_WEB_SERVER
-#endif
-#endif
 #include "vector"
 #include "WiFiClient.h"
 #include "WiFiClientSecure.h"
 #include "WiFi.h"
-#ifdef USE_ESP_ASNC_WEB_SERVER
-#include <ESPAsyncWebServer.h>
+#ifndef DISABLE_CALLBACK
+#include "ESPAsyncWebServer.h"
 #endif
 #include "WebSockets.h"
 #include <unordered_set>
