@@ -5,7 +5,7 @@
 #define USE_ESP_ASNC_WEB_SERVER
 #endif
 #endif
-
+#include "vector"
 #include "WiFiClient.h"
 #include "WiFiClientSecure.h"
 #include "WiFi.h"
@@ -30,11 +30,11 @@ public:
 
 private:
     std::vector<SonosSpeaker*> _allSonosSpeakers;
+    Stream* _debugSerial = nullptr;
 #ifdef USE_ESP_ASNC_WEB_SERVER
     AsyncWebServer* _webServer = nullptr;
-    uint16_t _port = 28124;
-    Stream* _debugSerial = nullptr;
 #endif
+    uint16_t _port = 28124;
 public:
 #ifdef USE_ESP_ASNC_WEB_SERVER
     // Must be called before addSpeaker
