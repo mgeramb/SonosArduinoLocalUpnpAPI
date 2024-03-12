@@ -32,7 +32,7 @@ SonosSpeaker::SonosSpeaker(
     : _sonosApi(sonosApi), _speakerIP(speakerIP)
 {
     _channelIndex = _sonosApi._allSonosSpeakers.size();
-#ifdef USE_ESP_ASNC_WEB_SERVER    
+#ifndef DISABLE_CALLBACK    
     webServer->addHandler(this);
 #endif
     _sonosApi._allSonosSpeakers.push_back(this);
