@@ -21,12 +21,12 @@
         "type": "git",
         "url": "https://github.com/mgeramb/SonosArduinoLocalUpnpAPI.git"
     },
-    "version": "0.0.4",
-    "dependencies": [
-	    "ESP Async WebServer @ ^2.7.0",
-	    "https://github.com/tmittet/microxpath.git @ ^1.1.0",
-	    "https://github.com/lemonkey/arduinoWebSockets.git @ ^2.3.7"
-    ],
+    "version": "0.0.5",
+    "dependencies": {
+	    "ESP Async WebServer": "ESP Async WebServer @ ^2.7.0",
+	    "MicroXPath": "https://github.com/tmittet/microxpath.git @ ^1.1.0",
+	    "WebSockets": "https://github.com/lemonkey/arduinoWebSockets.git @ ^2.3.7"
+    },
     "build": {
         "libLDFMode": "deep"
     }
