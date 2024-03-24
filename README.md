@@ -1,5 +1,6 @@
 # SonosArduinoLocalUpnpAPI
 Sonos-ESP inspired successor library for controlling Sonos speakers over the unofficial local UPnP API.
+The library can be used with the [platformio](https://platformio.org) visual code plugin for projects based on the arduino framework.
 
 ## Warning
 This library uses an unofficial API. 
@@ -119,7 +120,7 @@ void loop()
 
 # Licence
 
-This library is [MIT license](LICENSE).
+This library is [GPL license](LICENSE).
 
 # Credits
 
@@ -134,3 +135,9 @@ This library is base on the following libraries and documentations:
 [KilianB/Java-Sonos-Controller](https://github.com/KilianB/Java-Sonos-Controller)
 
 [tmittet/microxpath](https://github.com/tmittet/microxpath)
+
+[Links2004/arduinoWebSockets](https://github.com/Links2004/arduinoWebSockets)
+
+[lemonkey/arduinoWebSockets](https://github.com/lemonkey/arduinoWebSockets) Thank you for fixing the build error in the original [arduinoWebSockets](https://github.com/Links2004/arduinoWebSockets) library
+
+[mathieucarbou/ESPAsyncWebServer](https://github.com/mathieucarbou/ESPAsyncWebServer.git)

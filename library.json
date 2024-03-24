@@ -1,0 +1,33 @@
+{
+    "authors": [
+        {
+            "maintainer": true,
+            "name": "Michael Geramb",
+            "url": "https://github.com/mgeramb"
+        }
+    ],
+    "description": "Sonos-ESP inspired successor library for controlling Sonos speakers over the unofficial local UPNP API",
+    "export": {
+        "exclude": [
+            "test"
+        ]
+    },
+    "frameworks": "arduino",
+    "keywords": "sonos, upnp, client, audioclip",
+    "license": "GPL",
+    "name": "SonosArduinoLocalUpnpAPI",
+    "platforms": "espressif32",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mgeramb/SonosArduinoLocalUpnpAPI.git"
+    },
+    "version": "0.0.4",
+    "dependencies": [
+	    "ESP Async WebServer @ ^2.7.0",
+	    "https://github.com/tmittet/microxpath.git @ ^1.1.0",
+	    "https://github.com/lemonkey/arduinoWebSockets.git @ ^2.3.7"
+    ],
+    "build": {
+        "libLDFMode": "deep"
+    }
+}
