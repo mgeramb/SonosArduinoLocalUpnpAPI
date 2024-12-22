@@ -1,14 +1,25 @@
 #include "SonosApi.h"
+#include "string"
 #include "SonosApiParameterBuilder.h"
 #ifdef ARDUINO_ARCH_ESP32   
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
+#else
+#include <esp_http_server.h>
+#endif
 #include "SonosApiPlayNotification.h"
 #endif
+
 
 const char SonosSpeaker::p_SoapEnvelope[] PROGMEM = "s:Envelope";
 const char SonosSpeaker::p_SoapBody[] PROGMEM = "s:Body";
 const char SonosSpeaker::p_PropertySet[] PROGMEM = "e:propertyset";
 const char SonosSpeaker::p_Property[] PROGMEM = "e:property";
 const char SonosSpeaker::p_LastChange[] PROGMEM = "LastChange";
+
+const std::string SonosSpeaker::logPrefix()
+{
+      return "Sonos.API";
+}
 
 SonosSpeaker::~SonosSpeaker()
 {
@@ -22,18 +33,36 @@ IPAddress& SonosSpeaker::getSpeakerIP()
     return _speakerIP;
 }
 
+
 SonosSpeaker::SonosSpeaker(
     SonosApi& sonosApi,
     IPAddress speakerIP
 #ifndef DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     , AsyncWebServer* webServer
+#else
+    , httpd_handle_t webServer
+#endif
 #endif
     )
     : _sonosApi(sonosApi), _speakerIP(speakerIP)
 {
     _channelIndex = _sonosApi._allSonosSpeakers.size();
 #ifndef DISABLE_CALLBACK    
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     webServer->addHandler(this);
+#else
+    snprintf(_notificationUrl, sizeof(_notificationUrl), "/notification/%d", _channelIndex);
+    _uriHandler.uri = _notificationUrl;
+    _uriHandler.method = HTTP_NOTIFY;
+    _uriHandler.handler  = [](httpd_req_t *req)
+        { 
+            ((SonosSpeaker*)req->user_ctx)->handleBody(req); 
+            return ESP_OK; 
+        };
+    _uriHandler.user_ctx = this;
+    httpd_register_uri_handler(webServer, &_uriHandler);
+#endif
 #endif
     _sonosApi._allSonosSpeakers.push_back(this);
     _subscriptionTime = millis() - ((_subscriptionTimeInSeconds - _channelIndex) * 1000); // prevent inital subscription to be at the same time for all channels
@@ -90,6 +119,7 @@ void SonosSpeaker::loop()
 #endif
 }
 #ifndef DISABLE_CALLBACK   
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
 bool SonosSpeaker::canHandle(AsyncWebServerRequest* request)
 {
     if (request->url().startsWith("/notification/"))
@@ -102,7 +132,7 @@ bool SonosSpeaker::canHandle(AsyncWebServerRequest* request)
     return false;
 }
 #endif
-
+#endif
 
 void charBuffer_xPath(MicroXPath_P& xPath, const char* readBuffer, size_t readBufferLength, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize)
 {
@@ -213,209 +243,251 @@ const char SonosSpeaker::trackNumber[] PROGMEM = "&lt;CurrentTrack val=&quot;";
 // const char numberOfTracks[] PROGMEM = "&lt;NumberOfTracks val=&quot;";
 
 #ifndef DISABLE_CALLBACK   
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
 void SonosSpeaker::handleBody(AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total)
 {
-    if (_sonosApi._debugSerial != nullptr)
+#else
+esp_err_t SonosSpeaker::handleBody(httpd_req_t *req)
+{
+    size_t len = req->content_len;
+    if (req->content_len > 50000)
     {
-        _sonosApi._debugSerial->print("Notification received ");
-        _sonosApi._debugSerial->println(millis());
-        // _sonosApi._debugSerial->println(String(data, len));
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
     }
-    if (_notificationHandler != nullptr)
+    uint8_t* data = new uint8_t[req->content_len];
+    try
     {
-        bool groupCoordinatorChanged = false;
-        MicroXPath_P xPath;
-        const int bufferSize = 2000;
-        char* buffer = new char[bufferSize + 1];
-        buffer[bufferSize] = 0;
-        buffer[0] = 0;
-        PGM_P pathLastChange[] = {p_PropertySet, p_Property, p_LastChange};
-        charBuffer_xPath(xPath, (const char*)data, len, pathLastChange, 3, buffer, bufferSize);
-        const static int valueBufferSize = 1000;
-        SonosTrackInfo* sonosTrackInfo = nullptr;
-        char* valueBuffer = new char[1000];
-        try
-        {
-            if (readFromEncodeXML(buffer, masterVolume, valueBuffer, valueBufferSize))
-            {
-                auto currentVolume = constrain(atoi(valueBuffer), 0, 100);
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Volume: ");
-                    _sonosApi._debugSerial->println(currentVolume);
-                }
-                _notificationHandler->notificationVolumeChanged(this, currentVolume);
+        int ret = httpd_req_recv(req, (char*) data, req->content_len);
+        if (ret <= 0) {  /* 0 return value indicates connection closed */
+            /* Check if timeout occurred */
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                /* In case of timeout one can choose to retry calling
+                * httpd_req_recv(), but to keep it simple, here we
+                * respond with an HTTP 408 (Request Timeout) error */
+                httpd_resp_send_408(req);
             }
-            if (readFromEncodeXML(buffer, bass, valueBuffer, valueBufferSize))
-            {
-                auto currentBass = constrain(atoi(valueBuffer), -10, 10);
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Bass: ");
-                    _sonosApi._debugSerial->println(currentBass);
-                }
-                _notificationHandler->notificationBassChanged(this, currentBass);
-            }
-            if (readFromEncodeXML(buffer, treble, valueBuffer, valueBufferSize))
-            {
-                auto currentTreble = constrain(atoi(valueBuffer), -10, 10);
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Treble: ");
-                    _sonosApi._debugSerial->println(currentTreble);
-                }
-                _notificationHandler->notificationTrebleChanged(this, currentTreble);
-            }
-            if (readFromEncodeXML(buffer, masterMute, valueBuffer, valueBufferSize))
-            {
-                auto currentMute = valueBuffer[0] == '1';
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Mute: ");
-                    _sonosApi._debugSerial->println(currentMute);
-                }
-                _notificationHandler->notificationMuteChanged(this, currentMute);
-            }
-            if (readFromEncodeXML(buffer, masterLoudness, valueBuffer, valueBufferSize))
-            {
-                auto currentMute = valueBuffer[0] == '1';
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Loudness: ");
-                    _sonosApi._debugSerial->println(currentMute);
-                }
-                _notificationHandler->notificationLoudnessChanged(this, currentMute);
-            }
-            if (readFromEncodeXML(buffer, transportState, valueBuffer, valueBufferSize))
-            {
-                auto playState = getPlayStateFromString(valueBuffer);
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Play State: ");
-                    _sonosApi._debugSerial->println(playState);
-                }
-                _notificationHandler->notificationPlayStateChanged(this, playState);
-            }
-            if (readFromEncodeXML(buffer, playMode, valueBuffer, valueBufferSize))
-            {
-                auto playMode = getPlayModeFromString(valueBuffer);
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Play Mode: ");
-                    _sonosApi._debugSerial->println(playMode);
-                }
-                _notificationHandler->notificationPlayModeChanged(this, playMode);
-            }
-            if (readFromEncodeXML(buffer, trackURI, valueBuffer, valueBufferSize))
-            {
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Track URI: ");
-                    _sonosApi._debugSerial->println(valueBuffer);
-                }
-                if (sonosTrackInfo == nullptr)
-                    sonosTrackInfo = new SonosTrackInfo();
-                sonosTrackInfo->uri = valueBuffer;
-            }
-            if (readFromEncodeXML(buffer, trackMetaData, valueBuffer, valueBufferSize))
-            {
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Track Metadata: ");
-                    _sonosApi._debugSerial->println(valueBuffer);
-                }
-                if (sonosTrackInfo == nullptr)
-                    sonosTrackInfo = new SonosTrackInfo();
-                sonosTrackInfo->metadata = valueBuffer;
-            }
-            if (readFromEncodeXML(buffer, trackDuration, valueBuffer, valueBufferSize))
-            {
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Track Duration: ");
-                    _sonosApi._debugSerial->println(valueBuffer);
-                }
-                if (sonosTrackInfo == nullptr)
-                    sonosTrackInfo = new SonosTrackInfo();
-            }
-            if (readFromEncodeXML(buffer, trackNumber, valueBuffer, valueBufferSize))
-            {
-                if (_sonosApi._debugSerial != nullptr)
-                {
-                    _sonosApi._debugSerial->print("Track Number: ");
-                    _sonosApi._debugSerial->println(valueBuffer);
-                }
-                if (sonosTrackInfo == nullptr)
-                    sonosTrackInfo = new SonosTrackInfo();
-                sonosTrackInfo->trackNumber = atoi(valueBuffer);
-            }
-            if (sonosTrackInfo != nullptr)
-            {
-                _notificationHandler->notificationTrackChanged(this, *sonosTrackInfo);
-                if (sonosTrackInfo->uri.startsWith(SonosApi::SchemaMaster))
-                {
-                    auto newGroupCoordinator = sonosTrackInfo->uri.substring(strlen(SonosApi::SchemaMaster));
-                    if (newGroupCoordinator != _groupCoordinatorUuid)
-                    {
-                        _groupCoordinatorUuid = newGroupCoordinator;
-                        groupCoordinatorChanged = true;
-                    }
-                }
-                else
-                {
-                    if (!_groupCoordinatorUuid.isEmpty())
-                    {
-                        _groupCoordinatorUuid.clear();
-                        groupCoordinatorChanged = true;
-                    }
-                }
-            }
+            /* In case of error, returning ESP_FAIL will
+            * ensure that the underlying socket is closed */
+            return ESP_FAIL;
         }
-        catch (...)
+
+#endif
+
+        if (_sonosApi._debugSerial != nullptr)
         {
+            _sonosApi._debugSerial->printf("Notification received %d\r\n", (int) len);
+            _sonosApi._debugSerial->println(millis());
+            // _sonosApi._debugSerial->println(String(data, len));
+        }
+        if (_notificationHandler != nullptr)
+        {
+            bool groupCoordinatorChanged = false;
+            MicroXPath_P xPath;
+            const int bufferSize = 2000;
+            char* buffer = new char[bufferSize + 1];
+            buffer[bufferSize] = 0;
+            buffer[0] = 0;
+            PGM_P pathLastChange[] = {p_PropertySet, p_Property, p_LastChange};
+            charBuffer_xPath(xPath, (const char*)data, len, pathLastChange, 3, buffer, bufferSize);
+            const static int valueBufferSize = 1000;
+            SonosTrackInfo* sonosTrackInfo = nullptr;
+            char* valueBuffer = new char[1000];
+            try
+            {
+                if (readFromEncodeXML(buffer, masterVolume, valueBuffer, valueBufferSize))
+                {
+                    auto currentVolume = constrain(atoi(valueBuffer), 0, 100);
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Volume: ");
+                        _sonosApi._debugSerial->println(currentVolume);
+                    }
+                    _notificationHandler->notificationVolumeChanged(this, currentVolume);
+                }
+                if (readFromEncodeXML(buffer, bass, valueBuffer, valueBufferSize))
+                {
+                    auto currentBass = constrain(atoi(valueBuffer), -10, 10);
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Bass: ");
+                        _sonosApi._debugSerial->println(currentBass);
+                    }
+                    _notificationHandler->notificationBassChanged(this, currentBass);
+                }
+                if (readFromEncodeXML(buffer, treble, valueBuffer, valueBufferSize))
+                {
+                    auto currentTreble = constrain(atoi(valueBuffer), -10, 10);
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Treble: ");
+                        _sonosApi._debugSerial->println(currentTreble);
+                    }
+                    _notificationHandler->notificationTrebleChanged(this, currentTreble);
+                }
+                if (readFromEncodeXML(buffer, masterMute, valueBuffer, valueBufferSize))
+                {
+                    auto currentMute = valueBuffer[0] == '1';
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Mute: ");
+                        _sonosApi._debugSerial->println(currentMute);
+                    }
+                    _notificationHandler->notificationMuteChanged(this, currentMute);
+                }
+                if (readFromEncodeXML(buffer, masterLoudness, valueBuffer, valueBufferSize))
+                {
+                    auto currentMute = valueBuffer[0] == '1';
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Loudness: ");
+                        _sonosApi._debugSerial->println(currentMute);
+                    }
+                    _notificationHandler->notificationLoudnessChanged(this, currentMute);
+                }
+                if (readFromEncodeXML(buffer, transportState, valueBuffer, valueBufferSize))
+                {
+                    auto playState = getPlayStateFromString(valueBuffer);
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Play State: ");
+                        _sonosApi._debugSerial->println(playState);
+                    }
+                    _notificationHandler->notificationPlayStateChanged(this, playState);
+                }
+                if (readFromEncodeXML(buffer, playMode, valueBuffer, valueBufferSize))
+                {
+                    auto playMode = getPlayModeFromString(valueBuffer);
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Play Mode: ");
+                        _sonosApi._debugSerial->println(playMode);
+                    }
+                    _notificationHandler->notificationPlayModeChanged(this, playMode);
+                }
+                if (readFromEncodeXML(buffer, trackURI, valueBuffer, valueBufferSize))
+                {
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Track URI: ");
+                        _sonosApi._debugSerial->println(valueBuffer);
+                    }
+                    if (sonosTrackInfo == nullptr)
+                        sonosTrackInfo = new SonosTrackInfo();
+                    sonosTrackInfo->uri = valueBuffer;
+                }
+                if (readFromEncodeXML(buffer, trackMetaData, valueBuffer, valueBufferSize))
+                {
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Track Metadata: ");
+                        _sonosApi._debugSerial->println(valueBuffer);
+                    }
+                    if (sonosTrackInfo == nullptr)
+                        sonosTrackInfo = new SonosTrackInfo();
+                    sonosTrackInfo->metadata = valueBuffer;
+                }
+                if (readFromEncodeXML(buffer, trackDuration, valueBuffer, valueBufferSize))
+                {
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Track Duration: ");
+                        _sonosApi._debugSerial->println(valueBuffer);
+                    }
+                    if (sonosTrackInfo == nullptr)
+                        sonosTrackInfo = new SonosTrackInfo();
+                }
+                if (readFromEncodeXML(buffer, trackNumber, valueBuffer, valueBufferSize))
+                {
+                    if (_sonosApi._debugSerial != nullptr)
+                    {
+                        _sonosApi._debugSerial->print("Track Number: ");
+                        _sonosApi._debugSerial->println(valueBuffer);
+                    }
+                    if (sonosTrackInfo == nullptr)
+                        sonosTrackInfo = new SonosTrackInfo();
+                    sonosTrackInfo->trackNumber = atoi(valueBuffer);
+                }
+                if (sonosTrackInfo != nullptr)
+                {
+                    _notificationHandler->notificationTrackChanged(this, *sonosTrackInfo);
+                    if (sonosTrackInfo->uri.startsWith(SonosApi::SchemaMaster))
+                    {
+                        auto newGroupCoordinator = sonosTrackInfo->uri.substring(strlen(SonosApi::SchemaMaster));
+                        if (newGroupCoordinator != _groupCoordinatorUuid)
+                        {
+                            _groupCoordinatorUuid = newGroupCoordinator;
+                            groupCoordinatorChanged = true;
+                        }
+                    }
+                    else
+                    {
+                        if (!_groupCoordinatorUuid.isEmpty())
+                        {
+                            _groupCoordinatorUuid.clear();
+                            groupCoordinatorChanged = true;
+                        }
+                    }
+                }
+            }
+            catch (...)
+            {
+                delete sonosTrackInfo;
+                delete valueBuffer;
+                throw;
+            }
             delete sonosTrackInfo;
             delete valueBuffer;
-            throw;
-        }
-        delete sonosTrackInfo;
-        delete valueBuffer;
-        xPath.reset();
-        buffer[0] = 0;
-        PGM_P pathGroupVolume[] = {p_PropertySet, p_Property, "GroupVolume"};
-        charBuffer_xPath(xPath, (const char*)data, len, pathGroupVolume, 3, buffer, bufferSize);
-        if (strlen(buffer) > 0)
-        {
-            auto currentGroupVolume = constrain(atoi(buffer), 0, 100);
-            if (_sonosApi._debugSerial != nullptr)
+            xPath.reset();
+            buffer[0] = 0;
+            PGM_P pathGroupVolume[] = {p_PropertySet, p_Property, "GroupVolume"};
+            charBuffer_xPath(xPath, (const char*)data, len, pathGroupVolume, 3, buffer, bufferSize);
+            if (strlen(buffer) > 0)
             {
-                _sonosApi._debugSerial->print("Group Volume: ");
-                _sonosApi._debugSerial->println(currentGroupVolume);
+                auto currentGroupVolume = constrain(atoi(buffer), 0, 100);
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Group Volume: ");
+                    _sonosApi._debugSerial->println(currentGroupVolume);
+                }
+                _notificationHandler->notificationGroupVolumeChanged(this, currentGroupVolume);
             }
-            _notificationHandler->notificationGroupVolumeChanged(this, currentGroupVolume);
-        }
-        xPath.reset();
-        buffer[0] = 0;
-        PGM_P pathGroupMute[] = {p_PropertySet, p_Property, "GroupMute"};
-        charBuffer_xPath(xPath, (const char*)data, len, pathGroupMute, 3, buffer, bufferSize);
-        if (strlen(buffer) > 0)
-        {
-            auto currentGroupMute = buffer[0] == '1';
-            if (_sonosApi._debugSerial != nullptr)
+            xPath.reset();
+            buffer[0] = 0;
+            PGM_P pathGroupMute[] = {p_PropertySet, p_Property, "GroupMute"};
+            charBuffer_xPath(xPath, (const char*)data, len, pathGroupMute, 3, buffer, bufferSize);
+            if (strlen(buffer) > 0)
             {
-                _sonosApi._debugSerial->print("Group Mute: ");
-                _sonosApi._debugSerial->println(currentGroupMute);
+                auto currentGroupMute = buffer[0] == '1';
+                if (_sonosApi._debugSerial != nullptr)
+                {
+                    _sonosApi._debugSerial->print("Group Mute: ");
+                    _sonosApi._debugSerial->println(currentGroupMute);
+                }
+                _notificationHandler->notificationGroupMuteChanged(this, currentGroupMute);
             }
-            _notificationHandler->notificationGroupMuteChanged(this, currentGroupMute);
+            delete buffer;
+            if (groupCoordinatorChanged)
+                _notificationHandler->notificationGroupCoordinatorChanged(this);
         }
-        delete buffer;
-        if (groupCoordinatorChanged)
-            _notificationHandler->notificationGroupCoordinatorChanged(this);
+        // if (_sonosApi._debugSerial != nullptr)
+        // {
+        //     _sonosApi._debugSerial->println(String(data, len));
+        // }
+   
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
+        request->send(200);
+#else
     }
-    // if (_sonosApi._debugSerial != nullptr)
-    // {
-    //     _sonosApi._debugSerial->println(String(data, len));
-    // }
-    request->send(200);
+    catch (...)
+    {
+        delete data;
+        throw;
+    }
+    delete data;
+    httpd_resp_send(req, nullptr, 0);
+    return ESP_OK;
+#endif
 }
 #endif
 

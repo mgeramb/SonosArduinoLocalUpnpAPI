@@ -1,11 +1,17 @@
 #pragma once
-
+#ifndef SONOS_USE_ESP_ASNC_WEB_SERVER
+#define SONOS_USE_ESP_ASNC_WEB_SERVER 0
+#endif
 #include "vector"
 #include "WiFiClient.h"
 #include "WiFiClientSecure.h"
 #include "WiFi.h"
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
 #include "ESPAsyncWebServer.h"
+#else
+#include "esp_http_server.h"
+#endif
 #endif
 #include "WebSockets.h"
 #include <unordered_set>
@@ -26,14 +32,22 @@ public:
 private:
     std::vector<SonosSpeaker*> _allSonosSpeakers;
     Stream* _debugSerial = nullptr;
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     AsyncWebServer* _webServer = nullptr;
+#else
+    httpd_handle_t _webServer = nullptr;
+#endif
 #endif
     uint16_t _port = 28124;
 public:
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     // Must be called before addSpeaker
     void setWebServer(AsyncWebServer* webServer, uint16_t port);
+#else
+    void setWebServer(httpd_handle_t webServer, uint16_t port);
+#endif
 #endif
     void setDebugSerial(Stream* debugSerial);
     void loop();

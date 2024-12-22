@@ -9,8 +9,11 @@ class SonosApiParameterBuilder;
 class SonosApiPlayNotification;
 
 class SonosSpeaker 
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
 : private AsyncWebHandler
+#else
+#endif
 #endif
 {
     friend class SonosApi;
@@ -66,10 +69,8 @@ class SonosSpeaker
     SonosApiNotificationHandler* _notificationHandler = nullptr;
     SonosApiPlayNotification* _playNotification = nullptr;
   
-    const std::string logPrefix()
-    {
-      return "Sonos.API";
-    }
+    const std::string logPrefix();
+    
     static uint32_t formatedTimestampToSeconds(char* durationAsString);
     static void xPathOnWifiClient(MicroXPath_P& xPath, WiFiClient& wifiClient, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize);
     static const char* xPathOnString(MicroXPath_P& xPath, const char* bufferToSearch, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize, bool xmlDecode);
@@ -87,14 +88,24 @@ class SonosSpeaker
     int subscribeEvents(const char* soapUrl);
     void subscribeAll();
 
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     // AsyncWebHandler
     bool canHandle(AsyncWebServerRequest *request) override final;
     void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) override final;
+#else
+    esp_err_t handleBody(httpd_req_t *req);
+#endif
 #endif   
   private:
-#ifndef DISABLE_CALLBACK  
+#ifndef SONOS_DISABLE_CALLBACK  
+#if SONOS_USE_ESP_ASNC_WEB_SERVER
     SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP, AsyncWebServer* webServer);
+#else
+    SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP, httpd_handle_t webServer);
+    httpd_uri_t _uriHandler = {0};
+    char _notificationUrl[30];
+#endif
 #else
     SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP);
 #endif
@@ -106,7 +117,7 @@ class SonosSpeaker
     static String getUID(IPAddress ipAddress);
 
     IPAddress& getSpeakerIP();
-#ifndef DISABLE_CALLBACK
+#ifndef SONOS_DISABLE_CALLBACK
     void setCallback(SonosApiNotificationHandler* notificationHandler);
 #endif
     void setVolume(uint8_t volume);
