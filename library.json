@@ -21,7 +21,7 @@
         "type": "git",
         "url": "https://github.com/mgeramb/SonosArduinoLocalUpnpAPI.git"
     },
-    "version": "0.0.6",
+    "version": "0.0.7",
     "dependencies": {
 	    "ESP Async WebServer": "ESP Async WebServer @ ^2.7.0",
 	    "MicroXPath": "https://github.com/tmittet/microxpath.git @ ^1.1.0",

@@ -40,6 +40,8 @@ private:
 #endif
 #endif
     uint16_t _port = 28124;
+    bool _lanNetworkConnected = false;
+    IPAddress _lanIPAddress = IPAddress();
 public:
 #ifndef SONOS_DISABLE_CALLBACK
 #if SONOS_USE_ESP_ASNC_WEB_SERVER
@@ -49,6 +51,7 @@ public:
     void setWebServer(httpd_handle_t webServer, uint16_t port);
 #endif
 #endif
+    void setLANNetworkConnected(bool connected, IPAddress ipAddress) { _lanNetworkConnected = connected; _lanIPAddress = ipAddress; }
     void setDebugSerial(Stream* debugSerial);
     void loop();
     SonosSpeaker* addSpeaker(IPAddress ipAddress); 

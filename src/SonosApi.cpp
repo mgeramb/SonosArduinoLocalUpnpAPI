@@ -30,7 +30,7 @@ void SonosApi::setDebugSerial(Stream* debugSerial)
 }
 void SonosApi::loop()
 {
-    bool connected = WiFi.status() == WL_CONNECTED;
+    bool connected = _lanNetworkConnected || WiFi.status() == WL_CONNECTED;
     if (!connected)
         return;
     for (auto iter = _allSonosSpeakers.begin(); iter < _allSonosSpeakers.end(); iter++)

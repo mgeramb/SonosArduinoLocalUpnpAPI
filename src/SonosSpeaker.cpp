@@ -912,7 +912,7 @@ void SonosSpeaker::writeSubscribeHttpCall(Stream& stream, const char* soapUrl)
     stream.print(ip);
     stream.print("\r\n");
     stream.print("callback: <http://");
-    stream.print(WiFi.localIP());
+    stream.print(_sonosApi._lanNetworkConnected ? _sonosApi._lanIPAddress :  WiFi.localIP());
     stream.print(":");
     stream.print(_sonosApi._port);
     stream.print("/notification/");
