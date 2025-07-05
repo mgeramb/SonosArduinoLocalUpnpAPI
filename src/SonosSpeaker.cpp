@@ -825,7 +825,7 @@ void SonosSpeaker::unjoin()
 SonosApiPlayState SonosSpeaker::getPlayState()
 {
     SonosApiPlayState currentPlayState = SonosApiPlayState::Unkown;
-    postAction(renderingAVTransportUrl, renderingAVTransportSoapAction, "GetTransportInfo", nullptr, [=, &currentPlayState](WiFiClient& wifiClient) {
+    postAction(renderingAVTransportUrl, renderingAVTransportSoapAction, "GetTransportInfo", nullptr, [this, &currentPlayState](WiFiClient& wifiClient) {
         MicroXPath_P xPath;
         PGM_P path[] = {p_SoapEnvelope, p_SoapBody, "u:GetTransportInfoResponse", "CurrentTransportState"};
         char resultBuffer[20];
@@ -865,7 +865,7 @@ void SonosSpeaker::previous()
 SonosApiPlayMode SonosSpeaker::getPlayMode()
 {
     SonosApiPlayMode currentPlayMode = SonosApiPlayMode::Normal;
-    postAction(renderingAVTransportUrl, renderingAVTransportSoapAction, "GetTransportSettings", nullptr, [=, &currentPlayMode](WiFiClient& wifiClient) {
+    postAction(renderingAVTransportUrl, renderingAVTransportSoapAction, "GetTransportSettings", nullptr, [this, &currentPlayMode](WiFiClient& wifiClient) {
         MicroXPath_P xPath;
         PGM_P path[] = {p_SoapEnvelope, p_SoapBody, "u:GetTransportSettingsResponse", "PlayMode"};
         char resultBuffer[20];
