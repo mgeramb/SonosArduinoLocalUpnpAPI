@@ -110,8 +110,7 @@ class SonosSpeaker
     SonosSpeaker(SonosApi& sonosApi, IPAddress speakerIP);
 #endif
     ~SonosSpeaker();
-    void loop();
-
+ 
   public:
     String& getUID();
     static String getUID(IPAddress ipAddress);
@@ -120,6 +119,8 @@ class SonosSpeaker
 #ifndef SONOS_DISABLE_CALLBACK
     void setCallback(SonosApiNotificationHandler* notificationHandler);
 #endif
+    /* The loop function must only be called, if the loop in the SonosApi will not be used */
+    void loop();
     void setVolume(uint8_t volume);
     void setVolumeRelative(int8_t volume);
     uint8_t getVolume();
