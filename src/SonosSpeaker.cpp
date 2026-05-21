@@ -9,6 +9,7 @@
 #include "SonosApiPlayNotification.h"
 #endif
 
+unsigned long SonosSpeaker::lastSubscriptionTimeOfAnySpeaker = 0;
 
 const char SonosSpeaker::p_SoapEnvelope[] PROGMEM = "s:Envelope";
 const char SonosSpeaker::p_SoapBody[] PROGMEM = "s:Body";
@@ -65,7 +66,6 @@ SonosSpeaker::SonosSpeaker(
 #endif
 #endif
     _sonosApi._allSonosSpeakers.push_back(this);
-    _subscriptionTime = millis() - ((_subscriptionTimeInSeconds - _channelIndex) * 1000); // prevent inital subscription to be at the same time for all channels
 }
 
 void SonosSpeaker::xPathOnWifiClient(MicroXPath_P& xPath, WiFiClient& wifiClient, PGM_P* path, uint8_t pathSize, char* resultBuffer, size_t resultBufferSize)
@@ -79,30 +79,64 @@ void SonosSpeaker::xPathOnWifiClient(MicroXPath_P& xPath, WiFiClient& wifiClient
 void SonosSpeaker::setCallback(SonosApiNotificationHandler* notificationHandler)
 {
     _notificationHandler = notificationHandler;
+    if (_notificationHandler != nullptr)
+    {
+        _forceSubscriptionRetryTime = 0;
+        _subscriptionTime = 0; // force subscribe immediately
+    }
 }
 #endif
 
 void SonosSpeaker::subscribeAll()
 {
+    if (_notificationHandler == nullptr)
+        return;
+    if (lastSubscriptionTimeOfAnySpeaker != 0 && millis() - lastSubscriptionTimeOfAnySpeaker < 1000)
+    {
+        // delay
+        _delayedSubscriptionTime = millis();
+        if (_sonosApi._debugSerial != nullptr)
+            _sonosApi._debugSerial->println("Delay subscription to prevent all channels subscribing at the same time");
+
+    }
+    if (_delayedSubscriptionTime != 0 && millis() - _delayedSubscriptionTime < 1000)
+    {
+       // prefent subscription to be at the same time for all channels
+       return;
+    }
+    _delayedSubscriptionTime = 0;
     if (_sonosApi._debugSerial != nullptr)
     {
         _sonosApi._debugSerial->print("Subscribe ");
         _sonosApi._debugSerial->println(millis());
     }
-    _subscriptionTime = millis();
-    if (_subscriptionTime == 0)
-        _subscriptionTime = 1;
+    _subscriptionTime = max(1UL, millis()); // prevent zero, because that forces immediatly
+    lastSubscriptionTimeOfAnySpeaker = _subscriptionTime;
+    
     _renderControlSeq = 0;
-    subscribeEvents("/MediaRenderer/RenderingControl/Event");
-    subscribeEvents("/MediaRenderer/GroupRenderingControl/Event");
-    subscribeEvents("/MediaRenderer/AVTransport/Event");
+    if (subscribeEvents("/MediaRenderer/RenderingControl/Event") != 0)
+        _forceSubscriptionRetryTime = max(1UL, millis());
+    if (subscribeEvents("/MediaRenderer/GroupRenderingControl/Event") != 0)
+        _forceSubscriptionRetryTime = max(1UL, millis());
+    if (subscribeEvents("/MediaRenderer/AVTransport/Event") != 0)
+        _forceSubscriptionRetryTime = max(1UL, millis());
 }
 
 void SonosSpeaker::loop()
 {
-    if (_subscriptionTime > 0 && _notificationHandler != nullptr)
+    if (_notificationHandler != nullptr)
     {
-        if (millis() - _subscriptionTime > _subscriptionTimeInSeconds * 1000)
+        if (_forceSubscriptionRetryTime != 0)
+        {
+            if (millis() - _forceSubscriptionRetryTime > 60000)
+            {
+                 if (_sonosApi._debugSerial != nullptr)
+                    _sonosApi._debugSerial->println("Force retry subscription");
+                _forceSubscriptionRetryTime = 0;
+                subscribeAll();
+            }
+        }
+        else if (_subscriptionTime == 0 || millis() - _subscriptionTime > _subscriptionTimeInSeconds * 1000)
         {
             subscribeAll();
         }

@@ -66,6 +66,9 @@ class SonosSpeaker
     uint32_t _renderControlSeq = 0;
     unsigned long _lastGroupSnapshot = 0;
     unsigned long _subscriptionTime = 0;
+    unsigned long _delayedSubscriptionTime = 0;
+    unsigned long _forceSubscriptionRetryTime = 0;
+    static unsigned long lastSubscriptionTimeOfAnySpeaker;
     SonosApiNotificationHandler* _notificationHandler = nullptr;
     SonosApiPlayNotification* _playNotification = nullptr;
   
