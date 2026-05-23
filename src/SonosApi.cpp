@@ -1,5 +1,12 @@
 #include "SonosApi.h"
 
+#ifndef SONOS_HTTP_SERVER_CTRL_PORT
+#define SONOS_HTTP_SERVER_CTRL_PORT 15679
+#endif
+
+#ifndef SONOS_HTTP_SERVER_DEFAULT_PORT
+#define SONOS_HTTP_SERVER_DEFAULT_PORT 28124
+#endif
 
 const char SonosApi::DefaultSchemaInternetRadio[] PROGMEM = "x-rincon-mp3radio://";
 const char SonosApi::SchemaMusicLibraryFile[] PROGMEM = "x-file-cifs:";
@@ -7,6 +14,11 @@ const char SonosApi::SchemaLineIn[] PROGMEM = "x-rincon-stream:";
 const char SonosApi::SchemaTVIn[] PROGMEM = "x-sonos-htastream:";
 const char SonosApi::UrlPostfixTVIn[] PROGMEM = ":spdif";
 const char SonosApi::SchemaMaster[] PROGMEM = "x-rincon:";
+
+SonosApi::SonosApi()
+    : _port(SONOS_HTTP_SERVER_DEFAULT_PORT)
+{
+}
 
 #ifndef SONOS_DISABLE_CALLBACK
 #if SONOS_USE_ESP_ASNC_WEB_SERVER
@@ -40,6 +52,8 @@ void SonosApi::loop()
     }
 }
 
+
+
 SonosSpeaker* SonosApi::addSpeaker(IPAddress ipAddress)
 {
 #ifndef SONOS_DISABLE_CALLBACK
@@ -55,6 +69,7 @@ SonosSpeaker* SonosApi::addSpeaker(IPAddress ipAddress)
     {
         httpd_config_t config = HTTPD_DEFAULT_CONFIG();
         config.server_port = _port;
+        config.ctrl_port = SONOS_HTTP_SERVER_CTRL_PORT;
         httpd_start(&_webServer, &config);
     }
     auto speaker = new SonosSpeaker(*this, ipAddress, _webServer);

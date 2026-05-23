@@ -39,10 +39,11 @@ private:
     httpd_handle_t _webServer = nullptr;
 #endif
 #endif
-    uint16_t _port = 28124;
+    uint16_t _port;
     bool _lanNetworkConnected = false;
     IPAddress _lanIPAddress = IPAddress();
 public:
+    SonosApi();
 #ifndef SONOS_DISABLE_CALLBACK
 #if SONOS_USE_ESP_ASNC_WEB_SERVER
     // Must be called before addSpeaker
